@@ -1,0 +1,250 @@
+{
+  "dashboard_name": "Rebtel Telecom \u2014 Business Intelligence Dashboard",
+  "project_id": "telecom-project-504210",
+  "dataset": "rebtel_analytics",
+  "generated_at": "2026-08-09T20:59:36.061007",
+  "looker_studio_url": "https://lookerstudio.google.com",
+  "data_sources": [
+    {
+      "id": "ds_fraud",
+      "table": "mart_fraud_prevention",
+      "display_name": "Fraud Prevention",
+      "description": "Fraud risk classification per user"
+    },
+    {
+      "id": "ds_customer",
+      "table": "mart_customer_360",
+      "display_name": "Customer 360",
+      "description": "Customer segments, health scores, churn risk"
+    },
+    {
+      "id": "ds_revenue",
+      "table": "mart_revenue_analytics",
+      "display_name": "Revenue Analytics",
+      "description": "Revenue, LTV, unit economics"
+    },
+    {
+      "id": "ds_network",
+      "table": "mart_network_quality",
+      "display_name": "Network Quality",
+      "description": "Network SLA & call quality KPIs"
+    },
+    {
+      "id": "ds_corridor",
+      "table": "mart_corridor_analytics",
+      "display_name": "Corridor Analytics",
+      "description": "Remittance corridor intelligence"
+    }
+  ],
+  "filters": [
+    {
+      "id": "filter_segment",
+      "label": "Customer Segment",
+      "data_source": "ds_customer",
+      "field": "customer_segment",
+      "type": "list"
+    },
+    {
+      "id": "filter_fraud_risk",
+      "label": "Fraud Risk Level",
+      "data_source": "ds_fraud",
+      "field": "fraud_risk_level",
+      "type": "list"
+    },
+    {
+      "id": "filter_churn",
+      "label": "Churn Risk",
+      "data_source": "ds_customer",
+      "field": "churn_risk",
+      "type": "list"
+    },
+    {
+      "id": "filter_corridor_risk",
+      "label": "Corridor Risk",
+      "data_source": "ds_corridor",
+      "field": "corridor_risk",
+      "type": "list"
+    }
+  ],
+  "charts": [
+    {
+      "id": "chart_01",
+      "title": "Fraud Risk Distribution",
+      "type": "PIE_CHART",
+      "data_source": "ds_fraud",
+      "dimension": "fraud_risk_level",
+      "metric": "COUNT(user_id)",
+      "colors": {
+        "CRITICAL": "#f85149",
+        "HIGH_RISK_FRAUD": "#ff9f43",
+        "MEDIUM_RISK": "#d29922",
+        "LOW_RISK": "#3fb950",
+        "SAFE": "#58a6ff"
+      },
+      "sql": "SELECT fraud_risk_level, COUNT(user_id) AS user_count FROM `telecom-project-504210.rebtel_analytics.mart_fraud_prevention` GROUP BY fraud_risk_level ORDER BY user_count DESC",
+      "layout": {
+        "row": 0,
+        "col": 0,
+        "width": 6,
+        "height": 4
+      }
+    },
+    {
+      "id": "chart_02",
+      "title": "Customer Segments",
+      "type": "BAR_CHART",
+      "data_source": "ds_customer",
+      "dimension": "customer_segment",
+      "metric": "COUNT(user_id)",
+      "secondary_metric": "AVG(customer_health_score)",
+      "sql": "SELECT customer_segment, COUNT(user_id) AS users, ROUND(AVG(customer_health_score), 1) AS avg_health_score FROM `telecom-project-504210.rebtel_analytics.mart_customer_360` GROUP BY customer_segment ORDER BY users DESC",
+      "layout": {
+        "row": 0,
+        "col": 6,
+        "width": 6,
+        "height": 4
+      }
+    },
+    {
+      "id": "chart_03",
+      "title": "Customer Health Score by Segment",
+      "type": "COLUMN_CHART",
+      "data_source": "ds_customer",
+      "dimension": "customer_segment",
+      "metric": "AVG(customer_health_score)",
+      "breakdown": "churn_risk",
+      "sql": "SELECT customer_segment, churn_risk, ROUND(AVG(customer_health_score), 1) AS avg_health, COUNT(user_id) AS users FROM `telecom-project-504210.rebtel_analytics.mart_customer_360` GROUP BY customer_segment, churn_risk",
+      "layout": {
+        "row": 1,
+        "col": 0,
+        "width": 8,
+        "height": 4
+      }
+    },
+    {
+      "id": "chart_04",
+      "title": "Revenue by Subscription Plan",
+      "type": "BAR_CHART",
+      "data_source": "ds_revenue",
+      "dimension": "latest_subscription_plan",
+      "metric": "SUM(total_revenue)",
+      "secondary_metric": "AVG(estimated_ltv)",
+      "sql": "SELECT p.latest_subscription_plan, COUNT(r.user_id) AS users, ROUND(SUM(r.total_revenue), 2) AS total_revenue, ROUND(AVG(r.estimated_ltv), 2) AS avg_ltv FROM `telecom-project-504210.rebtel_analytics.mart_revenue_analytics` r JOIN `telecom-project-504210.rebtel_analytics.fct_payments` p ON r.user_id = p.user_id GROUP BY p.latest_subscription_plan ORDER BY total_revenue DESC",
+      "layout": {
+        "row": 1,
+        "col": 8,
+        "width": 4,
+        "height": 4
+      }
+    },
+    {
+      "id": "chart_05",
+      "title": "Top Money Transfer Corridors",
+      "type": "TABLE",
+      "data_source": "ds_corridor",
+      "dimensions": [
+        "corridor",
+        "corridor_risk"
+      ],
+      "metrics": [
+        "total_transfers",
+        "total_volume_usd",
+        "fraud_rate_pct"
+      ],
+      "sort": "total_volume_usd DESC",
+      "heatmap_on": "fraud_rate_pct",
+      "sql": "SELECT corridor, corridor_risk, total_transfers, total_volume_usd, fraud_rate_pct FROM `telecom-project-504210.rebtel_analytics.mart_corridor_analytics` ORDER BY total_volume_usd DESC LIMIT 20",
+      "layout": {
+        "row": 2,
+        "col": 0,
+        "width": 12,
+        "height": 5
+      }
+    },
+    {
+      "id": "chart_06a",
+      "title": "Connection Success Rate",
+      "type": "SCORECARD",
+      "data_source": "ds_network",
+      "metric": "connection_success_rate_pct",
+      "target": 98.0,
+      "target_unit": "%",
+      "sql": "SELECT connection_success_rate_pct FROM `telecom-project-504210.rebtel_analytics.mart_network_quality`",
+      "layout": {
+        "row": 3,
+        "col": 0,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "chart_06b",
+      "title": "Avg MOS Score",
+      "type": "SCORECARD",
+      "data_source": "ds_network",
+      "metric": "avg_mos_score",
+      "target": 4.0,
+      "target_unit": "score",
+      "sql": "SELECT avg_mos_score FROM `telecom-project-504210.rebtel_analytics.mart_network_quality`",
+      "layout": {
+        "row": 3,
+        "col": 3,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "chart_06c",
+      "title": "SLA Quality Met",
+      "type": "SCORECARD",
+      "data_source": "ds_network",
+      "metric": "sla_quality_met_pct",
+      "target": 95.0,
+      "target_unit": "%",
+      "sql": "SELECT sla_quality_met_pct FROM `telecom-project-504210.rebtel_analytics.mart_network_quality`",
+      "layout": {
+        "row": 3,
+        "col": 6,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "chart_06d",
+      "title": "Avg Delivery Rate",
+      "type": "SCORECARD",
+      "data_source": "ds_network",
+      "metric": "avg_delivery_rate_pct",
+      "target": 95.0,
+      "target_unit": "%",
+      "sql": "SELECT avg_delivery_rate_pct FROM `telecom-project-504210.rebtel_analytics.mart_network_quality`",
+      "layout": {
+        "row": 3,
+        "col": 9,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "chart_07",
+      "title": "Churn Risk Distribution",
+      "type": "DONUT_CHART",
+      "data_source": "ds_customer",
+      "dimension": "churn_risk",
+      "metric": "COUNT(user_id)",
+      "colors": {
+        "HIGH": "#f85149",
+        "MEDIUM": "#d29922",
+        "LOW": "#3fb950"
+      },
+      "sql": "SELECT churn_risk, COUNT(user_id) AS user_count FROM `telecom-project-504210.rebtel_analytics.mart_customer_360` GROUP BY churn_risk",
+      "layout": {
+        "row": 4,
+        "col": 0,
+        "width": 4,
+        "height": 4
+      }
+    }
+  ],
+  "layout_description": "\n    \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n    \u2502  REBTEL TELECOM \u2014 Business Intelligence Dashboard               \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Scorecard:  \u2502  Scorecard:  \u2502  Scorecard:  \u2502  Scorecard:       \u2502\n    \u2502  Conn Rate   \u2502  MOS Score   \u2502  SLA Quality \u2502  Delivery Rate    \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Fraud Risk Pie Chart    \u2502  Customer Segments Bar Chart         \u2502\n    \u2502  (mart_fraud_prevention) \u2502  (mart_customer_360)                 \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Customer Health Score Histogram + Churn Risk Donut             \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Revenue by Plan Bar + Call Failure Rate Bar                    \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Top Corridors Scatter/Table (mart_corridor_analytics)          \u2502\n    \u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n    \u2502  Detailed Fraud Risk Report Table                               \u2502\n    \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n    "
+}

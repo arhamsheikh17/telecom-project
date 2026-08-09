@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rebtel Telecom — dbt Data Lineage Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #0a0e1a; color: #e2e8f0; min-height: 100vh; overflow-x: hidden; }
+  header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 20px 40px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+  header .logo { width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  header h1 { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  header p  { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+  .legend { display: flex; gap: 24px; flex-wrap: wrap; padding: 16px 40px; background: #0f172a; border-bottom: 1px solid #1e293b; align-items: center; }
+  .legend-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 8px; }
+  .legend-item  { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; }
+  .legend-dot   { width: 12px; height: 12px; border-radius: 3px; }
+  .dot-raw   { background: #475569; }
+  .dot-stg   { background: #2563eb; }
+  .dot-fct   { background: #d97706; }
+  .dot-mart  { background: #059669; }
+  .canvas-wrap { padding: 30px 20px 60px; overflow-x: auto; }
+  svg#lineage { display: block; margin: 0 auto; }
+  .node rect { transition: all 0.2s ease; cursor: pointer; }
+  .node:hover rect { filter: brightness(1.3); }
+  .node text { font-family: 'Inter', sans-serif; pointer-events: none; }
+  .label-main { font-size: 12px; font-weight: 600; fill: #f1f5f9; }
+  .label-sub  { font-size: 10px; font-weight: 400; fill: #94a3b8; }
+  .label-rows { font-size: 10px; font-weight: 600; fill: #34d399; }
+  .layer-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; fill: #475569; }
+  #tooltip { position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 18px; max-width: 300px; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+  #tooltip.show { opacity: 1; }
+  #tooltip h4 { font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+  .tip-layer { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  #tooltip p  { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+  .tip-rows   { font-size: 12px; color: #34d399; margin-top: 8px; font-weight: 600; }
+  .tip-fields { font-size: 11px; color: #64748b; margin-top: 6px; }
+  .stats-bar  { display: flex; gap: 0; flex-wrap: wrap; border-top: 1px solid #1e293b; background: #0a0e1a; }
+  .stat-card  { flex: 1; min-width: 140px; padding: 20px 24px; border-right: 1px solid #1e293b; text-align: center; }
+  .stat-card:last-child { border-right: none; }
+  .stat-val   { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-lbl   { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .edge { fill: none; stroke-width: 1.5; stroke-dasharray: 6 3; animation: dash 20s linear infinite; }
+  .edge-raw-stg  { stroke: #4f46e5; }
+  .edge-stg-fct  { stroke: #d97706; }
+  .edge-fct-mart { stroke: #059669; }
+  .edge-mart-mart { stroke: #7c3aed; stroke-dasharray: 4 4; }
+  @keyframes dash { to { stroke-dashoffset: -200; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">&#128279;</div>
+  <div>
+    <h1>Rebtel Telecom &mdash; dbt Data Lineage Diagram</h1>
+    <p>BigQuery Warehouse &middot; Medallion Architecture &middot; 17 Tables across 4 Layers &middot; Project: telecom-project-504210</p>
+  </div>
+</header>
+
+<div class="legend">
+  <span class="legend-title">Legend</span>
+  <div class="legend-item"><div class="legend-dot dot-raw"></div>Raw Layer (Source data)</div>
+  <div class="legend-item"><div class="legend-dot dot-stg"></div>Staging Layer (Cleaned)</div>
+  <div class="legend-item"><div class="legend-dot dot-fct"></div>Fact Layer (Aggregated)</div>
+  <div class="legend-item"><div class="legend-dot dot-mart"></div>Analytics Mart (BI / ML)</div>
+</div>
+
+<div class="canvas-wrap">
+<svg id="lineage" width="1260" height="820" viewBox="0 0 1260 820">
+  <defs>
+    <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f46e5"/></marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d97706"/></marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#059669"/></marker>
+    <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7c3aed"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Layer background panels -->
+  <rect x="10"  y="10" width="262" height="790" rx="14" fill="#1e293b" fill-opacity="0.3" stroke="#334155" stroke-width="1"/>
+  <rect x="282" y="10" width="262" height="790" rx="14" fill="#1e3a8a" fill-opacity="0.15" stroke="#1e40af" stroke-width="1"/>
+  <rect x="554" y="10" width="262" height="790" rx="14" fill="#78350f" fill-opacity="0.15" stroke="#92400e" stroke-width="1"/>
+  <rect x="826" y="10" width="424" height="790" rx="14" fill="#052e16" fill-opacity="0.25" stroke="#065f46" stroke-width="1"/>
+
+  <!-- Layer labels -->
+  <text x="141"  y="40" text-anchor="middle" class="layer-label">RAW LAYER</text>
+  <text x="141"  y="56" text-anchor="middle" style="font-family:Inter;font-size:10px;fill:#475569;">Source ingestion</text>
+  <text x="413"  y="40" text-anchor="middle" class="layer-label">STAGING LAYER</text>
+  <text x="413"  y="56" text-anchor="middle" style="font-family:Inter;font-size:10px;fill:#2563eb;">Clean &amp; enrich</text>
+  <text x="685"  y="40" text-anchor="middle" class="layer-label">FACT LAYER</text>
+  <text x="685"  y="56" text-anchor="middle" style="font-family:Inter;font-size:10px;fill:#d97706;">Per-user aggregation</text>
+  <text x="1038" y="40" text-anchor="middle" class="layer-label">ANALYTICS MART LAYER</text>
+  <text x="1038" y="56" text-anchor="middle" style="font-family:Inter;font-size:10px;fill:#059669;">Business Intelligence &amp; ML</text>
+
+  <!-- RAW NODES -->
+  <!-- raw_stream_cdrs -->
+  <g class="node" transform="translate(28,80)"
+     data-name="raw_stream_cdrs" data-layer="RAW" data-dataset="rebtel_raw_stream"
+     data-rows="2,923" data-desc="Call Detail Records from streaming pipeline via Pub/Sub to GCS to BigQuery."
+     data-fields="call_id, user_id, duration_seconds, connection_success, call_quality_score, delivery_rate_percent, timestamp">
+    <rect width="224" height="70" fill="#1e293b" stroke="#475569" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#475569" rx="2"/>
+    <text x="14" y="22" class="label-main">raw_stream_cdrs</text>
+    <text x="14" y="38" class="label-sub">rebtel_raw_stream</text>
+    <text x="14" y="52" class="label-sub">&#128225; Pub/Sub &rarr; GCS &rarr; BigQuery</text>
+    <text x="14" y="64" class="label-rows">&#9654; 2,923 rows</text>
+  </g>
+
+  <!-- raw_stream_money_transfers -->
+  <g class="node" transform="translate(28,210)"
+     data-name="raw_stream_money_transfers" data-layer="RAW" data-dataset="rebtel_raw_stream"
+     data-rows="2,290" data-desc="Money transfer records from streaming pipeline. Pub/Sub to GCS to BigQuery."
+     data-fields="transfer_id, user_id, sender_country, receiver_country, transfer_amount_usd, is_fraud_flag">
+    <rect width="224" height="70" fill="#1e293b" stroke="#475569" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#475569" rx="2"/>
+    <text x="14" y="22" class="label-main">raw_stream_money_transfers</text>
+    <text x="14" y="38" class="label-sub">rebtel_raw_stream</text>
+    <text x="14" y="52" class="label-sub">&#128184; Pub/Sub &rarr; GCS &rarr; BigQuery</text>
+    <text x="14" y="64" class="label-rows">&#9654; 2,290 rows</text>
+  </g>
+
+  <!-- raw_batch_payments -->
+  <g class="node" transform="translate(28,340)"
+     data-name="raw_batch_payments" data-layer="RAW" data-dataset="rebtel_raw_batch"
+     data-rows="1,500" data-desc="Subscription payment records from batch CSV ingestion via GCS to BigQuery."
+     data-fields="transaction_id, user_id, subscription_plan, payment_amount, payment_status">
+    <rect width="224" height="70" fill="#1e293b" stroke="#475569" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#475569" rx="2"/>
+    <text x="14" y="22" class="label-main">raw_batch_payments</text>
+    <text x="14" y="38" class="label-sub">rebtel_raw_batch</text>
+    <text x="14" y="52" class="label-sub">&#128179; GCS CSV &rarr; BigQuery Batch Load</text>
+    <text x="14" y="64" class="label-rows">&#9654; 1,500 rows</text>
+  </g>
+
+  <!-- raw_airbyte_zendesk_tickets -->
+  <g class="node" transform="translate(28,470)"
+     data-name="raw_airbyte_zendesk_tickets" data-layer="RAW" data-dataset="rebtel_raw_airbyte"
+     data-rows="50" data-desc="Zendesk support tickets via Airbyte EL simulation. Includes Airbyte audit columns."
+     data-fields="ticket_id, user_id, issue_category, priority, ticket_status, satisfaction_score, _airbyte_ab_id, _airbyte_emitted_at">
+    <rect width="224" height="70" fill="#1e293b" stroke="#475569" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#475569" rx="2"/>
+    <text x="14" y="22" class="label-main">raw_airbyte_zendesk_tickets</text>
+    <text x="14" y="38" class="label-sub">rebtel_raw_airbyte</text>
+    <text x="14" y="52" class="label-sub">&#127981; Airbyte EL &rarr; BigQuery</text>
+    <text x="14" y="64" class="label-rows">&#9654; 50 rows</text>
+  </g>
+
+  <!-- STAGING NODES -->
+  <g class="node" transform="translate(300,80)"
+     data-name="stg_stream_cdrs" data-layer="STAGING" data-dataset="rebtel_analytics"
+     data-rows="2,923" data-desc="Cleaned CDRs. Adds call_duration_bucket and quality_tier derived columns. Filters nulls."
+     data-fields="call_id, user_id, duration_seconds, connection_success, call_quality_score, delivery_rate_percent, event_timestamp, call_duration_bucket, quality_tier">
+    <rect width="224" height="70" fill="#1e3a5f" stroke="#2563eb" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#2563eb" rx="2"/>
+    <text x="14" y="22" class="label-main">stg_stream_cdrs</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#10003; Cleaned + quality tier + duration bucket</text>
+    <text x="14" y="64" class="label-rows">&#9654; 2,923 rows</text>
+  </g>
+
+  <g class="node" transform="translate(300,210)"
+     data-name="stg_stream_transfers" data-layer="STAGING" data-dataset="rebtel_analytics"
+     data-rows="2,290" data-desc="Cleaned transfers. Adds transfer_size_tier and corridor (SENDER -> RECEIVER). Standardizes country codes to UPPERCASE."
+     data-fields="transfer_id, user_id, sender_country, receiver_country, transfer_amount_usd, is_fraud_flag, transfer_size_tier, corridor">
+    <rect width="224" height="70" fill="#1e3a5f" stroke="#2563eb" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#2563eb" rx="2"/>
+    <text x="14" y="22" class="label-main">stg_stream_transfers</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#10003; Cleaned + corridor + size tier</text>
+    <text x="14" y="64" class="label-rows">&#9654; 2,290 rows</text>
+  </g>
+
+  <g class="node" transform="translate(300,340)"
+     data-name="stg_batch_payments" data-layer="STAGING" data-dataset="rebtel_analytics"
+     data-rows="1,500" data-desc="Cleaned payments. Adds is_payment_successful flag. Standardizes plan to lowercase."
+     data-fields="transaction_id, user_id, subscription_plan, payment_amount, payment_status, is_payment_successful">
+    <rect width="224" height="70" fill="#1e3a5f" stroke="#2563eb" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#2563eb" rx="2"/>
+    <text x="14" y="22" class="label-main">stg_batch_payments</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#10003; Cleaned + payment success flag</text>
+    <text x="14" y="64" class="label-rows">&#9654; 1,500 rows</text>
+  </g>
+
+  <g class="node" transform="translate(300,470)"
+     data-name="stg_airbyte_zendesk" data-layer="STAGING" data-dataset="rebtel_analytics"
+     data-rows="50" data-desc="Cleaned Zendesk tickets. Adds resolution_hours. Standardizes text fields to lowercase."
+     data-fields="ticket_id, user_id, created_at, updated_at, issue_category, priority, ticket_status, satisfaction_score, resolution_hours">
+    <rect width="224" height="70" fill="#1e3a5f" stroke="#2563eb" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#2563eb" rx="2"/>
+    <text x="14" y="22" class="label-main">stg_airbyte_zendesk</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#10003; Cleaned + resolution_hours</text>
+    <text x="14" y="64" class="label-rows">&#9654; 50 rows</text>
+  </g>
+
+  <!-- FACT NODES -->
+  <g class="node" transform="translate(572,80)"
+     data-name="fct_telecom_calls" data-layer="FACT" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Per-user call metrics. GROUP BY user_id from stg_stream_cdrs. Aggregates: total_calls, failed_calls, avg_quality_score, call_failure_rate_pct, poor_quality_calls."
+     data-fields="user_id, total_calls, failed_calls, avg_quality_score, call_failure_rate_pct, poor_quality_calls, excellent_quality_calls">
+    <rect width="224" height="70" fill="#3d2e0a" stroke="#d97706" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#d97706" rx="2"/>
+    <text x="14" y="22" class="label-main">fct_telecom_calls</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#128202; Per-user call performance metrics</text>
+    <text x="14" y="64" class="label-rows">&#9654; 48 users (GROUP BY user_id)</text>
+  </g>
+
+  <g class="node" transform="translate(572,210)"
+     data-name="fct_financial_transfers" data-layer="FACT" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Per-user transfer metrics. GROUP BY user_id from stg_stream_transfers. Aggregates: total_transfers, total_transfer_usd, fraud_transfers, fraud_rate_pct, distinct_corridors."
+     data-fields="user_id, total_transfers, total_transfer_usd, fraud_transfers, fraud_rate_pct, distinct_corridors, very_large_transfers">
+    <rect width="224" height="70" fill="#3d2e0a" stroke="#d97706" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#d97706" rx="2"/>
+    <text x="14" y="22" class="label-main">fct_financial_transfers</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#128200; Per-user remittance &amp; fraud metrics</text>
+    <text x="14" y="64" class="label-rows">&#9654; 48 users (GROUP BY user_id)</text>
+  </g>
+
+  <g class="node" transform="translate(572,340)"
+     data-name="fct_payments" data-layer="FACT" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Per-user payment metrics. GROUP BY user_id from stg_batch_payments. Aggregates: total_payments, total_payment_amount, payment_failure_rate_pct, latest_subscription_plan."
+     data-fields="user_id, total_payments, total_payment_amount, successful_payments, payment_failure_rate_pct, latest_subscription_plan">
+    <rect width="224" height="70" fill="#3d2e0a" stroke="#d97706" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#d97706" rx="2"/>
+    <text x="14" y="22" class="label-main">fct_payments</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#128179; Per-user payment &amp; revenue metrics</text>
+    <text x="14" y="64" class="label-rows">&#9654; 48 users (GROUP BY user_id)</text>
+  </g>
+
+  <g class="node" transform="translate(572,470)"
+     data-name="fct_support_tickets" data-layer="FACT" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Per-user support metrics. GROUP BY user_id from stg_airbyte_zendesk. Aggregates: total_tickets, fraud_tickets, avg_satisfaction_score, avg_resolution_hours."
+     data-fields="user_id, total_tickets, fraud_tickets, avg_satisfaction_score, avg_resolution_hours, urgent_tickets">
+    <rect width="224" height="70" fill="#3d2e0a" stroke="#d97706" stroke-width="1.5" rx="10"/>
+    <rect width="4" height="70" fill="#d97706" rx="2"/>
+    <text x="14" y="22" class="label-main">fct_support_tickets</text>
+    <text x="14" y="38" class="label-sub">rebtel_analytics</text>
+    <text x="14" y="52" class="label-sub">&#128203; Per-user CSAT &amp; ticket metrics</text>
+    <text x="14" y="64" class="label-rows">&#9654; 48 users (GROUP BY user_id)</text>
+  </g>
+
+  <!-- MART NODES -->
+  <!-- mart_fraud_prevention -->
+  <g class="node" transform="translate(844,70)"
+     data-name="mart_fraud_prevention" data-layer="MART - ML Ready" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="ML fraud risk classifier. FULL OUTER JOIN: fct_telecom_calls + fct_financial_transfers + fct_support_tickets on user_id. Classifies: CRITICAL_RISK / HIGH_RISK_FRAUD / MEDIUM_RISK / LOW_RISK / SAFE."
+     data-fields="user_id, fraud_risk_level, total_fraud_signals, fraud_transfers, fraud_tickets, call_failure_rate_pct, total_transfer_usd, very_large_transfers, mart_refreshed_at">
+    <rect width="388" height="82" fill="#052e16" stroke="#059669" stroke-width="2" rx="10" filter="url(#glow)"/>
+    <rect width="5" height="82" fill="#059669" rx="2"/>
+    <text x="16" y="24" class="label-main" style="font-size:13px;fill:#4ade80;">mart_fraud_prevention</text>
+    <text x="16" y="42" class="label-sub">rebtel_analytics &middot; ML Fraud Risk Classifier</text>
+    <text x="16" y="58" class="label-sub">FULL OUTER JOIN: fct_calls + fct_transfers + fct_tickets</text>
+    <text x="16" y="74" class="label-sub">fraud_risk_level: CRITICAL / HIGH / MEDIUM / LOW / SAFE</text>
+    <text x="376" y="24" class="label-rows" text-anchor="end">&#9654; 48 users</text>
+  </g>
+
+  <!-- mart_customer_360 -->
+  <g class="node" transform="translate(844,210)"
+     data-name="mart_customer_360" data-layer="MART - Business BI" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Unified 360-degree customer profile. FULL OUTER JOIN all 4 fact tables. LEFT JOIN mart_fraud_prevention. Has: customer_health_score (0-100), customer_segment (VIP/HIGH_VALUE/ACTIVE/REGULAR), churn_risk."
+     data-fields="user_id, customer_health_score, customer_segment, churn_risk, total_revenue, total_calls, total_transfers, fraud_risk_level">
+    <rect width="388" height="82" fill="#052e16" stroke="#059669" stroke-width="2" rx="10" filter="url(#glow)"/>
+    <rect width="5" height="82" fill="#10b981" rx="2"/>
+    <text x="16" y="24" class="label-main" style="font-size:13px;fill:#4ade80;">mart_customer_360</text>
+    <text x="16" y="42" class="label-sub">rebtel_analytics &middot; Unified Customer Profile</text>
+    <text x="16" y="58" class="label-sub">FULL OUTER JOIN: all 4 fct tables + LEFT JOIN mart_fraud</text>
+    <text x="16" y="74" class="label-sub">customer_health_score (0-100) &middot; segment &middot; churn_risk</text>
+    <text x="376" y="24" class="label-rows" text-anchor="end">&#9654; 48 users</text>
+  </g>
+
+  <!-- mart_revenue_analytics -->
+  <g class="node" transform="translate(844,350)"
+     data-name="mart_revenue_analytics" data-layer="MART - Revenue" data-dataset="rebtel_analytics"
+     data-rows="48 users" data-desc="Revenue and unit economics. LEFT JOIN: fct_payments + fct_telecom_calls + fct_financial_transfers. Has: revenue_per_call, revenue_per_transfer, estimated_LTV."
+     data-fields="user_id, total_revenue, revenue_per_call, revenue_per_transfer, estimated_ltv, payment_failure_rate_pct">
+    <rect width="388" height="72" fill="#052e16" stroke="#059669" stroke-width="1.5" rx="10"/>
+    <rect width="5" height="72" fill="#34d399" rx="2"/>
+    <text x="16" y="24" class="label-main" style="font-size:13px;fill:#4ade80;">mart_revenue_analytics</text>
+    <text x="16" y="41" class="label-sub">rebtel_analytics &middot; Revenue &amp; LTV Intelligence</text>
+    <text x="16" y="58" class="label-sub">LEFT JOIN: fct_payments + fct_calls + fct_transfers</text>
+    <text x="16" y="68" class="label-sub">revenue_per_call &middot; revenue_per_transfer &middot; estimated_LTV</text>
+    <text x="376" y="24" class="label-rows" text-anchor="end">&#9654; 48 users</text>
+  </g>
+
+  <!-- mart_network_quality -->
+  <g class="node" transform="translate(844,480)"
+     data-name="mart_network_quality" data-layer="MART - SLA KPIs" data-dataset="rebtel_analytics"
+     data-rows="1 aggregate row" data-desc="Network-wide SLA KPIs. Reads directly from stg_stream_cdrs with no JOIN. Returns 1 global aggregate row: connection_success_rate_pct, avg_mos_score, sla_quality_met_pct (target 95%), sla_connection_met_pct (target 98%)."
+     data-fields="total_calls, connected_calls, connection_success_rate_pct, avg_mos_score, sla_quality_met_pct, sla_connection_met_pct">
+    <rect width="388" height="72" fill="#052e16" stroke="#059669" stroke-width="1.5" rx="10"/>
+    <rect width="5" height="72" fill="#6ee7b7" rx="2"/>
+    <text x="16" y="24" class="label-main" style="font-size:13px;fill:#4ade80;">mart_network_quality</text>
+    <text x="16" y="41" class="label-sub">rebtel_analytics &middot; Network SLA KPIs</text>
+    <text x="16" y="58" class="label-sub">Direct from stg_stream_cdrs (no JOIN needed)</text>
+    <text x="16" y="68" class="label-sub">connection_success_rate &middot; avg_mos_score &middot; SLA targets</text>
+    <text x="376" y="24" class="label-rows" text-anchor="end">&#9654; 1 global row</text>
+  </g>
+
+  <!-- mart_corridor_analytics -->
+  <g class="node" transform="translate(844,610)"
+     data-name="mart_corridor_analytics" data-layer="MART - Corridor" data-dataset="rebtel_analytics"
+     data-rows="132 corridors" data-desc="Remittance route intelligence. Direct from stg_stream_transfers. GROUP BY sender_country + receiver_country + corridor. Has: total_volume_usd, fraud_rate_pct, corridor_risk (HIGH_RISK / MONITOR / SAFE)."
+     data-fields="corridor, sender_country, receiver_country, total_transfers, total_volume_usd, fraud_rate_pct, corridor_risk">
+    <rect width="388" height="72" fill="#052e16" stroke="#059669" stroke-width="1.5" rx="10"/>
+    <rect width="5" height="72" fill="#a7f3d0" rx="2"/>
+    <text x="16" y="24" class="label-main" style="font-size:13px;fill:#4ade80;">mart_corridor_analytics</text>
+    <text x="16" y="41" class="label-sub">rebtel_analytics &middot; Remittance Route Intelligence</text>
+    <text x="16" y="58" class="label-sub">Direct from stg_stream_transfers (GROUP BY corridor)</text>
+    <text x="16" y="68" class="label-sub">total_volume_usd &middot; fraud_rate_pct &middot; corridor_risk</text>
+    <text x="376" y="24" class="label-rows" text-anchor="end">&#9654; 132 corridors</text>
+  </g>
+
+  <!-- EDGES: RAW to STAGING -->
+  <path class="edge edge-raw-stg" d="M252,115 C266,115 286,115 300,115" marker-end="url(#arr-blue)"/>
+  <path class="edge edge-raw-stg" d="M252,245 C266,245 286,245 300,245" marker-end="url(#arr-blue)"/>
+  <path class="edge edge-raw-stg" d="M252,375 C266,375 286,375 300,375" marker-end="url(#arr-blue)"/>
+  <path class="edge edge-raw-stg" d="M252,505 C266,505 286,505 300,505" marker-end="url(#arr-blue)"/>
+
+  <!-- EDGES: STAGING to FACT -->
+  <path class="edge edge-stg-fct" d="M524,115 C538,115 558,115 572,115" marker-end="url(#arr-orange)"/>
+  <path class="edge edge-stg-fct" d="M524,245 C538,245 558,245 572,245" marker-end="url(#arr-orange)"/>
+  <path class="edge edge-stg-fct" d="M524,375 C538,375 558,375 572,375" marker-end="url(#arr-orange)"/>
+  <path class="edge edge-stg-fct" d="M524,505 C538,505 558,505 572,505" marker-end="url(#arr-orange)"/>
+
+  <!-- EDGES: FACT to mart_fraud_prevention (FULL OUTER JOIN: calls+transfers+tickets) -->
+  <path class="edge edge-fct-mart" d="M796,115 C816,115 830,111 844,111" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,245 C816,245 830,120 844,112" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,505 C816,505 830,131 844,131" marker-end="url(#arr-green)"/>
+
+  <!-- EDGES: FACT to mart_customer_360 (FULL OUTER JOIN: all 4 fcts) -->
+  <path class="edge edge-fct-mart" d="M796,115 C816,115 830,250 844,250" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,245 C816,245 830,250 844,250" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,375 C816,375 830,258 844,250" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,505 C816,505 830,261 844,251" marker-end="url(#arr-green)"/>
+
+  <!-- EDGES: FACT to mart_revenue_analytics (LEFT JOIN: payments+calls+transfers) -->
+  <path class="edge edge-fct-mart" d="M796,375 C816,375 830,385 844,385" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,115 C816,115 830,375 844,370" marker-end="url(#arr-green)"/>
+  <path class="edge edge-fct-mart" d="M796,245 C816,245 830,378 844,372" marker-end="url(#arr-green)"/>
+
+  <!-- EDGES: STG direct to mart_network_quality -->
+  <path class="edge edge-stg-fct" d="M524,115 C600,115 720,515 844,515" marker-end="url(#arr-orange)" stroke-dasharray="3 5"/>
+
+  <!-- EDGES: STG direct to mart_corridor_analytics -->
+  <path class="edge edge-stg-fct" d="M524,245 C600,245 720,645 844,645" marker-end="url(#arr-orange)" stroke-dasharray="3 5"/>
+
+  <!-- EDGE: mart_fraud_prevention to mart_customer_360 (internal dependency) -->
+  <path class="edge edge-mart-mart" d="M1038,152 C1038,172 1038,196 1038,210" marker-end="url(#arr-purple)"/>
+
+</svg>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-card"><div class="stat-val">17</div><div class="stat-lbl">Total BigQuery Tables</div></div>
+  <div class="stat-card"><div class="stat-val">4</div><div class="stat-lbl">Raw Source Tables</div></div>
+  <div class="stat-card"><div class="stat-val">4</div><div class="stat-lbl">Staging Tables</div></div>
+  <div class="stat-card"><div class="stat-val">4</div><div class="stat-lbl">Fact Tables</div></div>
+  <div class="stat-card"><div class="stat-val">5</div><div class="stat-lbl">Analytics Mart Tables</div></div>
+  <div class="stat-card"><div class="stat-val">6,763</div><div class="stat-lbl">Total Rows Ingested</div></div>
+  <div class="stat-card"><div class="stat-val">48</div><div class="stat-lbl">Unique Users Tracked</div></div>
+</div>
+
+<div id="tooltip">
+  <div class="tip-layer" id="tip-layer"></div>
+  <h4 id="tip-name"></h4>
+  <p id="tip-desc"></p>
+  <div class="tip-rows" id="tip-rows"></div>
+  <div class="tip-fields" id="tip-fields"></div>
+</div>
+
+<script>
+  const tooltip  = document.getElementById('tooltip');
+  const tipName  = document.getElementById('tip-name');
+  const tipLayer = document.getElementById('tip-layer');
+  const tipDesc  = document.getElementById('tip-desc');
+  const tipRows  = document.getElementById('tip-rows');
+  const tipFields= document.getElementById('tip-fields');
+  const colors   = { 'RAW':'#64748b','STAGING':'#3b82f6','FACT':'#f59e0b','MART - ML Ready':'#4ade80','MART - Business BI':'#4ade80','MART - Revenue':'#34d399','MART - SLA KPIs':'#6ee7b7','MART - Corridor':'#a7f3d0' };
+
+  document.querySelectorAll('.node').forEach(n => {
+    n.addEventListener('mouseenter', () => {
+      const d = n.dataset;
+      tipLayer.textContent = d.layer + ' · ' + d.dataset;
+      tipLayer.style.color = colors[d.layer] || '#4ade80';
+      tipName.textContent  = d.name;
+      tipDesc.textContent  = d.desc;
+      tipRows.textContent  = '\u2022 Rows: ' + d.rows;
+      tipFields.textContent= 'Fields: ' + d.fields;
+      tooltip.classList.add('show');
+    });
+    n.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 16) + 'px';
+      tooltip.style.top  = (e.clientY - 20) + 'px';
+    });
+    n.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+  });
+</script>
+</body>
+</html>
