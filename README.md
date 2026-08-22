@@ -1,4 +1,4 @@
-# 📡 Rebtel Telecom & Fintech — Enterprise Intelligence Hub
+# Rebtel Telecom & Fintech — Enterprise Intelligence Hub
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![GCP BigQuery](https://img.shields.io/badge/GCP-BigQuery-4285F4.svg)](https://cloud.google.com/bigquery)
@@ -15,38 +15,7 @@ This repository integrates real-time event streaming, batch ELT ingestion, dbt t
 
 ## End-to-End System Architecture
 
-```mermaid
-flowchart TD
-    subgraph Data_Sources ["📥 1. Multi-Source Ingestion"]
-        A1[Zendesk SaaS API\nSupport Tickets] -->|Airbyte EL| B1[(BigQuery Staging\nstg_airbyte_zendesk)]
-        A2[Batch CSV Exports\nFinancial Payments] -->|GCS Landing| B2[(BigQuery Staging\nstg_batch_payments)]
-        A3[Stream Event Generator\nCDR Telecom Calls] -->|Pub/Sub Topic| B3[(BigQuery Staging\nstg_stream_cdrs)]
-        A4[Stream Event Generator\nMoney Transfers] -->|Pub/Sub Topic| B4[(BigQuery Staging\nstg_stream_transfers)]
-    end
-
-    subgraph Data_Warehouse ["2. GCP BigQuery Warehouse (rebtel_analytics)"]
-        B1 & B2 & B3 & B4 --> C1[dbt Transformations\nFact Modeling]
-        
-        C1 --> F1[(fct_telecom_calls)]
-        C1 --> F2[(fct_financial_transfers)]
-        C1 --> F3[(fct_payments)]
-        C1 --> F4[(fct_support_tickets)]
-
-        F1 & F2 & F3 & F4 --> M1[(mart_fraud_prevention)]
-        F1 & F2 & F3 & F4 --> M2[(mart_customer_360)]
-        F1 & F2 & F3 & F4 --> M3[(mart_revenue_analytics)]
-        F1 & F2 & F3 & F4 --> M4[(mart_network_quality)]
-        F1 & F2 & F3 & F4 --> M5[(mart_corridor_analytics)]
-    end
-
-    subgraph Machine_Learning [" 3. ML Fraud Engine"]
-        M1 -->|Scikit-Learn Random Forest| ML[Fraud Risk Classifier\nFeature Importances & Signals]
-    end
-
-    subgraph BI_Presentation [" 4. Streamlit Executive BI Hub"]
-        M1 & M2 & M3 & M4 & M5 & ML --> Dash[Streamlit BI Hub\ndashboard_output/app.py]
-    end
-```
+<img width="2551" height="1100" alt="DBTCaseStudyArchitecture drawio" src="https://github.com/user-attachments/assets/fd04feac-f5b3-4d88-a861-59b3886159a2" />
 
 ---
 
@@ -96,7 +65,7 @@ flowchart TD
 
 ### 4. Comprehensive Table Reference & Purpose
 
-#### 🔹 Layer 1: Staging Tables (`rebtel_analytics.stg_*`)
+####  Layer 1: Staging Tables (`rebtel_analytics.stg_*`)
 | Table Name | Source Raw Table | Purpose & Transformation Logic |
 |---|---|---|
 | `stg_airbyte_zendesk` | `rebtel_raw_airbyte.raw_airbyte_zendesk_tickets` | Standardizes Zendesk SaaS tickets, cleans categories/priorities, and calculates `resolution_hours`. |
@@ -104,7 +73,7 @@ flowchart TD
 | `stg_stream_transfers` | `rebtel_raw_stream.raw_stream_money_transfers` | Cleans remittance events, constructs `corridor` (`US -> MX`), and assigns `transfer_size_tier`. |
 | `stg_batch_payments` | `rebtel_raw_batch.raw_batch_payments` | Cleans payment transactions, standardizes plan names, and derives `is_payment_successful` boolean flag. |
 
-#### 🔹 Layer 2: Fact Tables (`rebtel_analytics.fct_*`)
+####  Layer 2: Fact Tables (`rebtel_analytics.fct_*`)
 | Table Name | Source Staging Table | Purpose & Transformation Logic |
 |---|---|---|
 | `fct_telecom_calls` | `stg_stream_cdrs` | Aggregates user-level call metrics: total calls, failed calls, `call_failure_rate_pct`, avg MOS score, and duration metrics. |
@@ -121,7 +90,7 @@ flowchart TD
 | `mart_network_quality` | `stg_stream_cdrs` | **Telecom Network SLA Monitor:** Tracks overall connection success rates against 98% target, MOS scores against 4.0 target, and quality distribution across routes. |
 | `mart_corridor_analytics` | `stg_stream_transfers` | **Global Remittance Route Intelligence:** Aggregates transfer volume, unique senders, and fraud rates across country corridors, classifying routes into `HIGH_RISK_CORRIDOR`, `MONITOR_CORRIDOR`, and `SAFE_CORRIDOR`. |
 
-#### 🔹 Layer 4: Analytical Reporting Views (`rebtel_analytics.vw_*`)
+####  Layer 4: Analytical Reporting Views (`rebtel_analytics.vw_*`)
 | View Name | Source Mart Table | Purpose & Downstream Use Case |
 |---|---|---|
 | `vw_fraud_summary` | `mart_fraud_prevention` | Aggregates risk tier user counts and high-risk fraud exposure for fast dashboard executive summary cards. |
@@ -131,7 +100,7 @@ flowchart TD
 
 ---
 
-## 🌟 Key Features & Analytics Hub
+##  Key Features & Analytics Hub
 
 ### 1.Fraud Risk Intelligence Center
 * **Live BigQuery Querying:** Direct integration with `mart_fraud_prevention`.
@@ -153,7 +122,7 @@ flowchart TD
 * **LTV & Plan Revenue:** Aggregate revenue tracking across payment streams and subscription plans.
 * **Global Corridors:** Remittance transfer volume, average transaction sizes, and high-risk corridor profiling across country pairs.
 
-### 5. 🤖 ML Fraud Intelligence
+### 5.  ML Fraud Intelligence
 * **Live Scikit-Learn Model Scoring:** Real-time feature importance visualization and model scorecard (Random Forest F1: 100%, AUC-ROC: 1.00).
 * **Dynamic Plotly Visuals:** Interactive bubble scatter plots, signal intensity heatmaps, and tier comparison grouped bars.
 
