@@ -1,230 +1,147 @@
-# Rebtel Telecom & Fintech — Enterprise Intelligence Hub
+# AMN Healthcare Snowflake + Azure Data Platform Case Study
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![GCP BigQuery](https://img.shields.io/badge/GCP-BigQuery-4285F4.svg)](https://cloud.google.com/bigquery)
-[![dbt Core](https://img.shields.io/badge/dbt-Core%20v1.7%2B-FF6B4A.svg)](https://www.getdbt.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Scikit-Learn](https://img.shields.io/badge/ML-Scikit--Learn-F7931E.svg)](https://scikit-learn.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Azure Data Factory](https://img.shields.io/badge/Azure-Data%20Factory-0078D4.svg)](https://azure.microsoft.com/products/data-factory)
+[![Azure Data Lake Storage Gen2](https://img.shields.io/badge/Azure-ADLS%20Gen2-0078D4.svg)](https://azure.microsoft.com/products/storage/data-lake-storage)
+[![Snowflake](https://img.shields.io/badge/Data%20Warehouse-Snowflake-56B9EB.svg)](https://www.snowflake.com/)
+[![Power BI](https://img.shields.io/badge/BI-Power%20BI-F2C811.svg)](https://powerbi.microsoft.com/)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC.svg)](https://www.terraform.io/)
 
-An enterprise-grade, end-to-end modern data engineering & business intelligence platform built for telecommunications and remittance fintech operations. 
+This repository now documents an **AMN Healthcare-inspired enterprise data platform case study** centered on **Azure Data Factory + ADLS Gen2 + Snowflake + Power BI DirectQuery + Terraform**.
 
-This repository integrates real-time event streaming, batch ELT ingestion, dbt transformation modeling in **GCP BigQuery**, machine learning fraud detection engines, and an executive dark-themed **Streamlit BI Hub**.
-
----
-
-## End-to-End System Architecture
-
-<img width="2551" height="1100" alt="DBTCaseStudyArchitecture drawio" src="https://github.com/user-attachments/assets/fd04feac-f5b3-4d88-a861-59b3886159a2" />
+> **Scope clarity:** The production-style AMN architecture in this README/wiki is case-study documentation. The existing Python telecom implementation in this repository remains intact as the original template/reference codebase and has not been rewritten into a live AMN runtime conversion.
 
 ---
 
-## dbt Transformations & Pipeline Architecture
+## Project Overview
 
-### 1. What dbt Does in This Project
-**dbt (Data Build Tool)** acts as the core **Transform (T)** engine in our **ELT (Extract, Load, Transform)** architecture. Instead of processing data outside the data warehouse, dbt leverages GCP BigQuery's cloud compute engine to transform raw, un-nested datasets into clean, aggregated, business-ready data models.
+The case study demonstrates how to design a metadata-driven healthcare analytics platform with:
 
-* **Decouples Ingestion from Business Logic:** Raw data lands unchanged into staging datasets (`rebtel_raw_airbyte`, `rebtel_raw_batch`, `rebtel_raw_stream`), allowing dbt to handle all cleaning, business rule application, and analytics modeling idempotently.
-* **Automates Multi-Layer Modeling:** Sequentially materializes data across 4 distinct architectural layers: **Staging → Facts → Marts → Analytical Views**.
-* **Guarantees Data Quality & Lineage:** Standardizes types, eliminates null values, handles edge cases, and maintains strict dependency graphs (`dbt_lineage.html`).
+- Event-aware ingestion through Azure Data Factory (ADF)
+- Landing/storage on ADLS Gen2
+- Layered Snowflake model (`RAW`, `CURATED`, `MARTS`, `CONTROL`)
+- DirectQuery analytics in Power BI
+- Security/governance and operational observability
+- Terraform-managed cloud provisioning
 
----
+### Verification labels used in this repository
 
-### 2. Types of Transformations Performed by dbt
-
-| Transformation Type | Description & Business Applied Logic |
-|---|---|
-| **Data Cleaning & Standardization** | Trims whitespace, standardizes string casing with `LOWER(TRIM())`, casts string dates to `TIMESTAMP`, and handles null values using `COALESCE()`. |
-| **Categorization & Feature Engineering** | Computes derived metrics such as: <br>• `call_duration_bucket` (`no_connection`, `very_short`, `short`, `medium`, `long`) <br>• MOS `quality_tier` (`excellent`, `good`, `fair`, `poor`) <br>• `transfer_size_tier` (`micro`, `small`, `medium`, `large`, `very_large`) <br>• Zendesk `resolution_hours` calculation. |
-| **Multi-Source Fact Aggregation** | Aggregates raw streaming/batch events per user (e.g., total calls, failed calls, failure rates, fraud ticket counts, total transfer volumes). |
-| **Multi-Factor Fraud Classification** | Evaluates cross-domain risk vectors (call failure rates + remittance volume + support tickets) to assign a composite `fraud_risk_level`: `CRITICAL_RISK`, `HIGH_RISK_FRAUD`, `MEDIUM_RISK`, `LOW_RISK`, `SAFE`. |
-| **Customer Health & Churn Scoring** | Calculates an integrated **Customer Health Score (0–100)** based on quality (25%), satisfaction (25%), reliability (25%), and trust (25%), while categorizing churn risk (`HIGH_CHURN_RISK`, `MODERATE_CHURN_RISK`, `STABLE`). |
-| **Unit Economics & Corridor Risk** | Calculates revenue per call/transfer, proxy Customer LTV, and classifies global remittance route risks (`HIGH_RISK_CORRIDOR`, `MONITOR_CORRIDOR`, `SAFE_CORRIDOR`). |
+- **Repository-Verified**: Confirmed by repository files available in reviewed AMN source materials.
+- **Reference Benchmark**: Published/industry benchmark or target architecture metric, not claimed as achieved in this destination repository.
+- **Planned / Conversation-Only**: Discussed design or runtime behavior not fully represented as versioned implementation here.
 
 ---
 
-### 3. How dbt Performs Execution & Where Data Is Dumped
+## End-to-End Architecture
 
-```
-[Raw Sources] ──> [Layer 1: Staging Tables] ──> [Layer 2: Fact Tables] ──> [Layer 3: Analytics Marts] ──> [Layer 4: Reporting Views]
-                                                                                      │
-                                                                   DUMPED TO GCP BIGQUERY DATASET:
-                                                           telecom-project-504210.rebtel_analytics
+```mermaid
+flowchart LR
+  A[Source Systems\nCMS + Synthea + Synthetic HR + Operational Feeds] --> B[ADLS Gen2 Landing]
+  B --> C[ADF Pipelines\nPL_COPY_*\nPL_METADATA_INGEST\nPL_FILE_EVENT_ROUTER]
+  C --> D[Snowflake RAW]
+  D --> E[Snowflake CURATED\nMERGE + DQ + dedupe]
+  E --> F[Snowflake MARTS\nDims/Facts/Views]
+  F --> G[Power BI DirectQuery]
+  C --> H[CONTROL.PIPELINE_RUN_LOG\nAudit + SLA]
+  H --> I[Azure Monitor + Log Analytics]
 ```
 
-1. **Execution Workflow (`src/dbt_runner.py`):**
-   - **Step 1 (Staging):** Reads raw tables from `rebtel_raw_airbyte`, `rebtel_raw_batch`, `rebtel_raw_stream` and creates staging tables in `rebtel_analytics`.
-   - **Step 2 (Facts):** Reads staging tables and aggregates user-level metrics into core fact tables.
-   - **Step 3 (Marts):** Executes `FULL OUTER JOIN` operations across Telecom, Fintech, SaaS, and Payment facts to generate consolidated business intelligence marts.
-   - **Step 4 (Views):** Materializes lightweight reporting views for downstream executive queries.
-2. **Target BigQuery Dataset:**
-   - **Project ID:** `telecom-project-504210`
-   - **Destination Dataset:** `rebtel_analytics`
+---
+
+## Layered Data Flow
+
+1. **Landing & Event Detection (Repository-Verified in source docs):** Files land in ADLS Gen2 `landing/`, optionally routed by event trigger paths.
+2. **ADF Orchestration (Repository-Verified in source docs):**
+   - Child copy pipelines: `PL_COPY_HOSPITALS`, `PL_COPY_STAFFING_REQUESTS`, `PL_COPY_CANDIDATES`, `PL_COPY_SCHEDULES`, `PL_COPY_PAYROLL`
+   - Metadata parent pipeline: `PL_METADATA_INGEST`
+   - File routing pipeline: `PL_FILE_EVENT_ROUTER`
+   - Triggers: `TR_METADATA_INGEST_BATCH_READY`, `TR_LANDING_CSV_CREATED`
+3. **RAW Layer (Repository-Verified in source docs):** Source-shaped append-first data with ingest metadata columns.
+4. **CURATED Layer (Repository-Verified in source docs):** Typed, deduplicated, idempotent merge logic and data quality standardization.
+5. **MARTS Layer (Repository-Verified in source docs):** Analytics-ready dimensions, facts, and executive reporting views.
+6. **BI Consumption (Repository-Verified in source docs):** Power BI DirectQuery reads Snowflake marts.
 
 ---
 
-### 4. Comprehensive Table Reference & Purpose
+## Snowflake Schema & Table Reference
 
-####  Layer 1: Staging Tables (`rebtel_analytics.stg_*`)
-| Table Name | Source Raw Table | Purpose & Transformation Logic |
+| Layer | Snowflake Schema | Purpose |
 |---|---|---|
-| `stg_airbyte_zendesk` | `rebtel_raw_airbyte.raw_airbyte_zendesk_tickets` | Standardizes Zendesk SaaS tickets, cleans categories/priorities, and calculates `resolution_hours`. |
-| `stg_stream_cdrs` | `rebtel_raw_stream.raw_stream_cdrs` | Cleans CDR telecom streams, handles nulls, and derives `call_duration_bucket` & MOS `quality_tier`. |
-| `stg_stream_transfers` | `rebtel_raw_stream.raw_stream_money_transfers` | Cleans remittance events, constructs `corridor` (`US -> MX`), and assigns `transfer_size_tier`. |
-| `stg_batch_payments` | `rebtel_raw_batch.raw_batch_payments` | Cleans payment transactions, standardizes plan names, and derives `is_payment_successful` boolean flag. |
+| Landing Raw | `AMN_DEV.RAW` | Source-shaped raw ingestion with audit metadata |
+| Curated | `AMN_DEV.CURATED` | Cleansed, typed, deduplicated business entities |
+| Analytics | `AMN_DEV.MARTS` | Star-schema dimensions/facts and BI serving views |
+| Control Plane | `AMN_DEV.CONTROL` | Ingestion config, run logs, SLA/observability metadata |
 
-####  Layer 2: Fact Tables (`rebtel_analytics.fct_*`)
-| Table Name | Source Staging Table | Purpose & Transformation Logic |
-|---|---|---|
-| `fct_telecom_calls` | `stg_stream_cdrs` | Aggregates user-level call metrics: total calls, failed calls, `call_failure_rate_pct`, avg MOS score, and duration metrics. |
-| `fct_financial_transfers` | `stg_stream_transfers` | Aggregates user-level transfer metrics: total volume USD, avg transfer size, `fraud_transfers`, and `fraud_rate_pct`. |
-| `fct_support_tickets` | `stg_airbyte_zendesk` | Aggregates user-level Zendesk metrics: total tickets, `fraud_tickets`, avg satisfaction score, and ticket statuses. |
-| `fct_payments` | `stg_batch_payments` | Aggregates user-level payment metrics: total revenue, successful vs failed payments, and latest subscription plan. |
+### Core marts model entities (Repository-Verified in source docs)
 
-#### 🔹 Layer 3: Analytics Marts (`rebtel_analytics.mart_*`)
-| Table Name | Source Fact Tables | Purpose & Key Business Value |
-|---|---|---|
-| `mart_fraud_prevention` | `fct_telecom_calls`<br>`fct_financial_transfers`<br>`fct_support_tickets` | **ML Fraud Classification Engine:** Combines call drop spikes, high-value transfers, and fraud support tickets to calculate `total_fraud_signals` and classify users into `CRITICAL_RISK`, `HIGH_RISK_FRAUD`, `MEDIUM_RISK`, `LOW_RISK`, and `SAFE`. |
-| `mart_customer_360` | `fct_*`<br>`mart_fraud_prevention` | **Unified Customer Profile:** Computes a 0–100 **Customer Health Score**, assigns customer segments (`VIP`, `HIGH_VALUE`, `ACTIVE`, `REGULAR`, `INACTIVE`), and predicts churn risk (`HIGH_CHURN_RISK`, `MODERATE_CHURN_RISK`, `STABLE`). |
-| `mart_revenue_analytics` | `fct_payments`<br>`fct_telecom_calls`<br>`fct_financial_transfers` | **Unit Economics & LTV Analytics:** Calculates `revenue_per_call`, `revenue_per_transfer`, payment failure rates, and estimates Customer Lifetime Value (`estimated_ltv`). |
-| `mart_network_quality` | `stg_stream_cdrs` | **Telecom Network SLA Monitor:** Tracks overall connection success rates against 98% target, MOS scores against 4.0 target, and quality distribution across routes. |
-| `mart_corridor_analytics` | `stg_stream_transfers` | **Global Remittance Route Intelligence:** Aggregates transfer volume, unique senders, and fraud rates across country corridors, classifying routes into `HIGH_RISK_CORRIDOR`, `MONITOR_CORRIDOR`, and `SAFE_CORRIDOR`. |
-
-####  Layer 4: Analytical Reporting Views (`rebtel_analytics.vw_*`)
-| View Name | Source Mart Table | Purpose & Downstream Use Case |
-|---|---|---|
-| `vw_fraud_summary` | `mart_fraud_prevention` | Aggregates risk tier user counts and high-risk fraud exposure for fast dashboard executive summary cards. |
-| `vw_customer_health` | `mart_customer_360` | Summarizes average health scores, churn risks, and total revenue per customer segment. |
-| `vw_revenue_by_plan` | `mart_revenue_analytics` | Summarizes total revenue, transaction counts, and average spend per subscription plan. |
-| `vw_corridor_top20` | `mart_corridor_analytics` | Ranks top 20 global remittance routes by transaction volume for executive corridor monitoring. |
+- Dimensions: `DIM_HOSPITAL`, `DIM_CANDIDATE`, `DIM_DATE` (and associated domain dimensions)
+- Facts: `FACT_STAFFING_REQUEST`, `FACT_PLACEMENT_SCHEDULE`, `FACT_PAYROLL`
+- Views: `VW_EXECUTIVE_KPIS`, `VW_RECRUITING_FUNNEL`, `VW_PIPELINE_RUNS`, `VW_PIPELINE_LATEST_STATUS`
 
 ---
 
-##  Key Features & Analytics Hub
+## Analytics Features
 
-### 1.Fraud Risk Intelligence Center
-* **Live BigQuery Querying:** Direct integration with `mart_fraud_prevention`.
-* **Risk Tiering:** Real-time classification into `CRITICAL_RISK`, `HIGH_RISK_FRAUD`, `MEDIUM_RISK`, and `LOW_RISK`.
-* **Signal Heatmap:** Multi-dimensional matrix mapping call drop rates, remittance transfer spikes, and support ticket fraud signals.
-* **High-Risk Priority Ledger:** Interactive, sortable table featuring top flagged accounts with formatted currency (`$`), failure rates (`%`), and CSV export capabilities.
+- Executive workforce KPIs (demand, fill-rate, staffing performance)
+- Recruiting funnel analytics
+- Payroll/overtime analytics
+- Pipeline observability dashboards driven by control-plane logs
+- DirectQuery model strategy for near-real-time decision support
 
-### 2. Network SLA & Quality Monitor
-* **MOS Score Tracking:** Measures mean opinion scores across international telecom routes against benchmark targets ($>4.0$).
-* **Connection Success Rate:** Real-time monitoring of CDR stream connection rates vs. 98% SLA thresholds.
-* **Call Duration Profiling:** Binned analysis categorizing call lengths from drop-outs to long-duration calls.
-
-### 3. Customer 360 & Health Analytics
-* **Health Scoring:** Algorithm computing overall user engagement, retention scores, and satisfaction ratings.
-* **Churn Risk Matrix:** Proactive classification of accounts vulnerable to churn.
-* **Segment Breakdown:** Enterprise metrics broken down by plan tiers (`VIP`, `Premium`, `Standard`, `Basic`).
-
-### 4.  Revenue & Remittance Analytics
-* **LTV & Plan Revenue:** Aggregate revenue tracking across payment streams and subscription plans.
-* **Global Corridors:** Remittance transfer volume, average transaction sizes, and high-risk corridor profiling across country pairs.
-
-### 5.  ML Fraud Intelligence
-* **Live Scikit-Learn Model Scoring:** Real-time feature importance visualization and model scorecard (Random Forest F1: 100%, AUC-ROC: 1.00).
-* **Dynamic Plotly Visuals:** Interactive bubble scatter plots, signal intensity heatmaps, and tier comparison grouped bars.
+> Metrics such as **99.9% success**, **1–3 minute SLA**, **>100 GB/day**, **1,176 tables**, or **93% cost reduction** are treated in this repository as **Reference Benchmarks** unless independently validated in this destination codebase.
 
 ---
 
-##  Project Directory Structure
+## Repository Structure (Destination Repository)
 
 ```directory
 telecom-project/
-├── dashboard_output/            # Streamlit BI Presentation App
-│   ├── app.py                   # Main Executive Dashboard (Dark Theme Glassmorphic UI)
-│   ├── README.md                # Quickstart instructions for BI Hub
-│   └── requirements.txt         # Dashboard Python dependencies
-│
-├── src/                         # Pipeline, ELT, dbt & ML Scripts
-│   ├── dashboard.py             # Alternative BI Hub script
-│   ├── airbyte_ingest.py        # Airbyte SaaS connector trigger script
-│   ├── data_generator.py        # Synthetic CDR, payment & transfer stream generator
-│   ├── pubsub_publisher.py      # GCP Pub/Sub event publisher
-│   ├── pubsub_to_gcs.py         # Pub/Sub subscriber to GCS landing
-│   ├── gcs_landing_upload.py    # GCS file uploader utility
-│   ├── gcs_to_bigquery_load.py  # BigQuery raw staging loader
-│   ├── dbt_runner.py            # dbt transformation execution script
-│   ├── ml_fraud_detection.py    # Random Forest fraud model trainer
-│   ├── looker_dashboard_creator.py # Looker Studio API integration
-│   └── setup_adc.py             # GCP authentication diagnostic script
-│
-├── data/                        # Local Data Files
-│   ├── batch/                   # Batch CSV payment logs
-│   ├── saas/                    # Zendesk support ticket JSONs
-│   └── stream/                  # Live CDR and money transfer JSON streams
-│
-├── ml_outputs/                  # Machine Learning Models & Artifacts
-│   ├── fraud_detection_model.pkl# Trained Random Forest Model
-│   └── fraud_scaler.pkl         # Feature Scaler
-│
-├── dbt_lineage.html             # Interactive dbt Data Lineage Graph
-├── dashboard_spec.json          # BI specification definition
-└── README.md                    # Project Documentation (This File)
+├── README.md                        # This AMN case-study overview
+├── wiki/
+│   └── Case-Study-Blog.md           # Detailed AMN case-study write-up
+├── architecture/                    # Existing reference architecture images
+├── src/                             # Original telecom Python pipeline/template implementation
+├── data/                            # Original telecom sample data
+├── dashboard_output/                # Original telecom dashboard assets
+├── dashboard_spec.json
+└── dbt_lineage.html
 ```
 
 ---
 
-## Technology Stack
+## Technology Stack (Case-Study Architecture)
 
-| Layer | Technology | Usage |
+| Layer | Technology | Role |
 |---|---|---|
-| **Data Warehouse** | **GCP BigQuery** | Enterprise Data Warehouse (`telecom-project-504210.rebtel_analytics`) |
-| **Cloud Infrastructure** | **Google Cloud Platform** | GCS, Pub/Sub, Cloud SDK, IAM ADC Authentication |
-| **Ingestion / ELT** | **Airbyte & Python** | SaaS (Zendesk), Batch CSV & Pub/Sub Event Streaming |
-| **Data Transformation** | **dbt (Data Build Tool)** | Staging, Fact, Mart SQL modeling & data lineage |
-| **Machine Learning** | **Scikit-Learn & Pandas** | Random Forest Classifier, Feature Engineering |
-| **User Interface / BI** | **Streamlit & Plotly** | Executive BI Dashboard, Dark Glassmorphism Design |
+| Ingestion Orchestration | Azure Data Factory | Metadata-driven copy/orchestration pipelines |
+| Data Lake | ADLS Gen2 | Landing, checkpoint, archive/quarantine zones |
+| Warehouse | Snowflake | `RAW`/`CURATED`/`MARTS`/`CONTROL` schemas |
+| BI | Power BI (DirectQuery) | Executive dashboards with live warehouse query pattern |
+| IaC | Terraform | Declarative provisioning for Azure resources, RBAC, diagnostics |
+| Observability | Azure Monitor + Log Analytics | Pipeline diagnostics, KQL alerts, SLA tracking |
+| Secrets | Azure Key Vault | Credential and secret isolation |
 
 ---
 
-## Quickstart Guide
+## Quickstart (Documentation-First)
 
-### 1. Prerequisites
-Ensure you have the following installed on your machine:
-* **Python 3.10+**
-* **Google Cloud SDK (`gcloud` CLI)**
-* Access to GCP Project: `telecom-project-504210`
-
-### 2. Environment Setup
-
-Clone the repository and install the dependencies:
-
-```bash
-# Clone the repository
-git clone https://github.com/arhamsheikh17/telecom-project.git
-cd telecom-project
-
-# Install required dependencies
-pip install -r dashboard_output/requirements.txt
-```
-
-### 3. Google Cloud Authentication
-
-Authenticate your GCP user account and set up Application Default Credentials (ADC) for BigQuery querying:
-
-```powershell
-# Authenticate gcloud user
-gcloud auth login
-
-# Set up Application Default Credentials (ADC) for BigQuery Client
-gcloud auth application-default login
-```
-
-### 4. Running the Dashboard
-
-To start the Streamlit BI Hub locally:
-
-```powershell
-python -m streamlit run dashboard_output/app.py
-```
-
-Open your browser and navigate to `http://localhost:8501`.
-
+1. Review this README for architecture and repository context.
+2. Open the full case study at [`wiki/Case-Study-Blog.md`](wiki/Case-Study-Blog.md).
+3. Use this repository as:
+   - A **documentation template** for AMN-style Azure+Snowflake platform design, and
+   - An **implementation reference** for the existing telecom Python assets already present in `src/`.
 
 ---
 
-### Created & Maintained By
-**Arham Sheikh** — Data Engineer
+## Current Limitations & Disclaimer
+
+- This destination repository is not claiming a complete production AMN runtime migration.
+- The AMN content here is architecture/case-study documentation derived from reviewed source materials.
+- Any benchmark-scale outcomes from public AMN narratives are retained as **reference targets**, not asserted achieved results in this repository.
+- No infrastructure credentials, secrets, or private data are stored in this documentation.
+
+---
+
+## Maintainer
+
+**Arham Sheikh** — Data Engineer  
 GitHub: [@arhamsheikh17](https://github.com/arhamsheikh17)
